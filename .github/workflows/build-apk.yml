@@ -1,0 +1,48 @@
+name: Build Smart Shop APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare project
+        run: |
+          mkdir project
+          unzip -o SmartShop_Android_Release_Project*.zip -d project
+          find project -type f -name gradlew -exec chmod +x {} \;
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android
+        uses: android-actions/setup-android@v3
+
+      - name: Build APK
+        working-directory: project
+        run: |
+          GRADLEW=$(find . -type f -name gradlew | head -n 1)
+          if [ -z "$GRADLEW" ]; then
+            echo "gradlew tidak ditemukan"
+            exit 1
+          fi
+          cd "$(dirname "$GRADLEW")"
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Smart-Shop-APK
+          path: |
+            project/**/build/outputs/apk/debug/*.apk
